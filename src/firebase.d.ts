@@ -39,6 +39,15 @@ export enum LoginType {
   EMAIL_LINK
 }
 
+export enum LogComplexEventTypeParameter {
+  STRING,
+  INT,
+  FLOAT,
+  DOUBLE,
+  LONG,
+  ARRAY,
+  BOOLEAN
+}
 /**
  * The allowed values for QueryOptions.orderBy.type.
  */
@@ -508,6 +517,17 @@ export interface SendCrashLogOptions {
 export function init(options?: InitOptions): Promise<any>;
 
 // Database
+export interface OnDisconnect {
+  cancel(): Promise<any>;
+  remove(): Promise<any>;
+  set(value: any): Promise<any>;
+  setWithPriority(
+      value: any,
+      priority: number | string
+  ): Promise<any>;
+  update(values: Object): Promise<any>;
+}
+
 export function push(path: string, value: any): Promise<PushResult>;
 
 export function getValue(path: string): Promise<any>;
@@ -525,6 +545,8 @@ export function addChildEventListener(onChildEvent: (data: FBData) => void, path
 export function addValueEventListener(onValueEvent: (data: FBData) => void, path: string): Promise<AddEventListenerResult>;
 
 export function removeEventListeners(listeners: Array<any>, path: string): Promise<any>;
+
+export function onDisconnect(path: string): OnDisconnect;
 
 /**
  * Tells the client to keep its local cache in sync with the server automatically.
@@ -839,6 +861,8 @@ export function reloadUser(): Promise<void>;
 export function getAuthToken(option: GetAuthTokenOptions): Promise<string>;
 
 export function logout(): Promise<any>;
+
+export function unlink(providerId: string): Promise<User>;
 
 export function fetchProvidersForEmail(email: string): Promise<Array<string>>;
 

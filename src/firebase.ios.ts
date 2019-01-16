@@ -9,7 +9,7 @@ import * as firebaseMessaging from "./messaging/messaging";
 import * as application from "tns-core-modules/application/application";
 import { ios as iOSUtils } from "tns-core-modules/utils/utils";
 import * as firebaseFunctions from './functions/functions';
-import { firestore, User } from "./firebase";
+import { firestore, User, OnDisconnect as OnDisconnectBase } from "./firebase";
 import { firebaseUtils } from "./utils";
 
 firebase._gIDAuthentication = null;
@@ -332,7 +332,9 @@ firebase.init = arg => {
   return new Promise((resolve, reject) => {
     if (firebase.initialized) {
       reject("Firebase already initialized");
+      return;
     }
+
     firebase.initialized = true;
 
     try {
@@ -588,6 +590,30 @@ firebase.logout = arg => {
   });
 };
 
+firebase.unlink = providerId => {
+  return new Promise((resolve, reject) => {
+    try {
+      const user = FIRAuth.auth().currentUser;
+      if (!user) {
+        reject("Not logged in");
+        return;
+      }
+
+      user.unlinkFromProviderCompletion(providerId, (user, error) => {
+        if (error) {
+          reject(error.localizedDescription);
+        } else {
+          resolve(user);
+        }
+      });
+
+    } catch (ex) {
+      console.log("Error in firebase.logout: " + ex);
+      reject(ex);
+    }
+  });
+};
+
 function toLoginResult(user, additionalUserInfo?: FIRAdditionalUserInfo): User {
   if (!user) {
     return null;
@@ -776,6 +802,10 @@ firebase.login = arg => {
           }
 
           firebase.requestPhoneAuthVerificationCode(userResponse => {
+            if (userResponse === undefined) {
+              reject("Prompt was canceled");
+              return;
+            }
             const fIRAuthCredential = FIRPhoneAuthProvider.provider().credentialWithVerificationIDVerificationCode(verificationID, userResponse);
             if (fAuth.currentUser) {
               const onCompletionLink = (authData: FIRAuthDataResult, error: NSError) => {
@@ -1413,6 +1443,94 @@ firebase.remove = path => {
   });
 };
 
+class OnDisconnect implements OnDisconnectBase {
+  constructor(private dbRef: FIRDatabaseReference, private path: string) {
+  }
+  cancel(): Promise<any> {
+    return new Promise((resolve, reject) => {
+      try {
+        this.dbRef.cancelDisconnectOperationsWithCompletionBlock((error: NSError, dbRef: FIRDatabaseReference) => {
+          error ? reject(error.localizedDescription) : resolve();
+        });
+      } catch (ex) {
+        console.log("Error in firebase.onDisconnect.cancel: " + ex);
+        reject(ex);
+      }
+    });
+  }
+
+  remove(): Promise<any> {
+    return new Promise((resolve, reject) => {
+      try {
+        this.dbRef.onDisconnectRemoveValueWithCompletionBlock((error: NSError, dbRef: FIRDatabaseReference) => {
+          error ? reject(error.localizedDescription) : resolve();
+        });
+      } catch (ex) {
+        console.log("Error in firebase.onDisconnect.remove: " + ex);
+        reject(ex);
+      }
+    });
+  }
+
+  set(value: any): Promise<any> {
+    return new Promise((resolve, reject) => {
+      try {
+        this.dbRef.onDisconnectSetValueWithCompletionBlock(value, (error: NSError, dbRef: FIRDatabaseReference) => {
+          error ? reject(error.localizedDescription) : resolve();
+        });
+      } catch (ex) {
+        console.log("Error in firebase.onDisconnect.set: " + ex);
+        reject(ex);
+      }
+    });
+  }
+
+  setWithPriority(value: any, priority: string | number): Promise<any> {
+    return new Promise((resolve, reject) => {
+      try {
+        this.dbRef.onDisconnectSetValueAndPriorityWithCompletionBlock(value, priority, (error: NSError, dbRef: FIRDatabaseReference) => {
+          error ? reject(error.localizedDescription) : resolve();
+        });
+      } catch (ex) {
+        console.log("Error in firebase.onDisconnect.setWithPriority: " + ex);
+        reject(ex);
+      }
+    });
+  }
+
+  update(values: any): Promise<any> {
+    return new Promise((resolve, reject) => {
+      try {
+        if (typeof values === "object") {
+          this.dbRef.onDisconnectUpdateChildValuesWithCompletionBlock(values, (error: NSError, dbRef: FIRDatabaseReference) => {
+            error ? reject(error.localizedDescription) : resolve();
+          });
+        } else {
+          const lastPartOfPath = this.path.lastIndexOf("/");
+          const pathPrefix = this.path.substring(0, lastPartOfPath);
+          const pathSuffix = this.path.substring(lastPartOfPath + 1);
+          const updateObject = '{"' + pathSuffix + '" : "' + values + '"}';
+          FIRDatabase.database().reference().childByAppendingPath(pathPrefix).updateChildValuesWithCompletionBlock(JSON.parse(updateObject), (error: NSError, dbRef: FIRDatabaseReference) => {
+            error ? reject(error.localizedDescription) : resolve();
+          });
+        }
+      } catch (ex) {
+        console.log("Error in firebase.onDisconnect.update: " + ex);
+        reject(ex);
+      }
+    });
+  }
+}
+
+firebase.onDisconnect = (path: string): OnDisconnect => {
+  if (!firebase.initialized) {
+    console.error("Please run firebase.init() before firebase.onDisconnect()");
+    throw new Error("FirebaseApp is not initialized. Make sure you run firebase.init() first");
+  }
+  const dbRef: FIRDatabaseReference = FIRDatabase.database().reference().child(path);
+  return new OnDisconnect(dbRef, path);
+};
+
 firebase.sendCrashLog = arg => {
   return new Promise((resolve, reject) => {
     try {
@@ -1621,10 +1739,16 @@ firebase.firestore.runTransaction = (updateFunction: (transaction: firestore.Tra
   });
 };
 
+
 firebase.firestore.collection = (collectionPath: string): firestore.CollectionReference => {
   try {
     if (typeof(FIRFirestore) === "undefined") {
       console.log("Make sure 'Firebase/Firestore' is in the plugin's Podfile");
+      return null;
+    }
+
+    if (!firebase.initialized) {
+      console.log("Please run firebase.init() before firebase.firestore.collection()");
       return null;
     }
 
@@ -1710,6 +1834,11 @@ firebase.firestore.doc = (collectionPath: string, documentPath?: string): firest
   try {
     if (typeof(FIRFirestore) === "undefined") {
       console.log("Make sure 'Firebase/Firestore' is in the plugin's Podfile");
+      return null;
+    }
+
+    if (!firebase.initialized) {
+      console.log("Please run firebase.init() before firebase.firestore.doc()");
       return null;
     }
 
