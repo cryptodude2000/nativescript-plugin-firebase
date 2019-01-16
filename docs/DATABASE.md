@@ -311,7 +311,8 @@ The link is for the iOS SDK, but it's the same for Android.
       console.log("Listener error: " + result.error);
     } else {
       console.log("Key: " + result.key);
-      console.log("Calue: " + JSON.stringify(result.val()));
+      console.log("key exists? " + result.exists());
+      console.log("Value: " + JSON.stringify(result.val()));
     }
   };
 
@@ -342,6 +343,42 @@ You can see an example of this (for both the native and web API) in the [demo ap
 
 ```js
   firebaseWebApi.database().ref("/companies").off("value");
+```
+</details>
+
+### OnDisconnect
+Use OnDisconnect to run operations on Firebase Realtime Database when the client disconnects.
+Disconnections can happen when the app is killed from the recent tasks, internet loss, etc. When
+you regain internet (app wasn't closed) then the database will update instantly.
+
+Note that if the device restarts / app is killed in background (ungraceful disconnect) the database will
+NOT update in realtime (there's no way), but after Firebase detects that the device is unreachable then it
+will run the function given to onDisconnect.
+
+Rather than passing in callbacks every function returns a promise.
+
+<details>
+ <summary>Native API</summary>
+
+```typescript
+  firebase.onDisconnect("/companies").cancel().then(() => console.log("Success")).catch(error => console.log(error));
+  firebase.onDisconnect("/companies").remove();
+  firebase.onDisconnect("/companies").set(value);
+  firebase.onDisconnect("/companies").setWithPriority(value, priority /* string | number */);
+  firebase.onDisconnect("/companies").update(value);
+
+```
+</details>
+
+<details>
+ <summary>Web API</summary>
+
+```typescript
+  firebaseWebApi.database().ref("/companies").onDisconnect().cancel().then(() => console.log("Success"));
+  firebaseWebApi.database().ref("/companies").onDisconnect().remove();
+  firebaseWebApi.database().ref("/companies").onDisconnect().set(value);
+  firebaseWebApi.database().ref("/companies").onDisconnect().setWithPriority(value, priority /* string | number*/);
+  firebaseWebApi.database().ref("/companies").onDisconnect().update(values);
 ```
 </details>
 

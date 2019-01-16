@@ -1,3 +1,4 @@
+import { RewardedVideoAdReward } from "nativescript-plugin-firebase/admob/admob";
 import { Observable } from "tns-core-modules/data/observable";
 import { alert, prompt } from "tns-core-modules/ui/dialogs";
 import { isAndroid, isIOS } from "tns-core-modules/platform";
@@ -8,7 +9,8 @@ import {
   crashlytics as firebaseCrashlytics,
   performance as firebasePerformance,
   storage as firebaseStorage,
-  User
+  User,
+  LogComplexEventTypeParameter
 } from "nativescript-plugin-firebase";
 import * as fs from "tns-core-modules/file-system";
 import { MessagingViewModel } from './messaging-view-model';
@@ -236,6 +238,7 @@ export class HelloWorldModel extends Observable {
           okButtonText: "Darn!"
         });
       } else {
+        console.log("key exists? " + result.exists());
         this.set("path", path);
         this.set("key", result.key);
         this.set("value", JSON.stringify(result.val()));
@@ -255,6 +258,7 @@ export class HelloWorldModel extends Observable {
     firebaseWebApi.database().ref(path)
         .once("value")
         .then(result => {
+          console.log("key exists? " + result.exists());
           this.set("path", path);
           this.set("key", result.key);
           this.set("value", JSON.stringify(result.val()));
@@ -267,6 +271,7 @@ export class HelloWorldModel extends Observable {
     firebaseWebApi.database().ref(path)
         .once("value")
         .then(result => {
+          console.log("key exists? " + result.exists());
           this.set("path", path);
           this.set("key", result.key);
           this.set("value", JSON.stringify(result.val()));
@@ -307,6 +312,7 @@ export class HelloWorldModel extends Observable {
     firebaseWebApi.database().ref(path).orderByChild(child)
         .once("value")
         .then(result => {
+          console.log("key exists? " + result.exists());
           this.set("path", path);
           this.set("key", result.key);
           this.set("value", JSON.stringify(result.val()));
@@ -476,7 +482,7 @@ export class HelloWorldModel extends Observable {
     });
   }
 
-  public doLogAnalyticsEvent(): void {
+  public doLogAnalyticsEvents(): void {
     firebase.analytics.logEvent({
       // see https://firebase.google.com/docs/reference/android/com/google/firebase/analytics/FirebaseAnalytics.Event.html
       key: "add_to_cart",
@@ -503,6 +509,45 @@ export class HelloWorldModel extends Observable {
           });
         }
     );
+
+    /**
+     * Same thing as logEvent but can add an array or specific types not just string (LogComplexEventTypeParameter.BOOLEAN, LogComplexEventTypeParameter.STRING,
+     * LogComplexEventTypeParameter.DOUBLE, LogComplexEventTypeParameter.FLOAT, LogComplexEventTypeParameter.INT, LogComplexEventTypeParameter.ARRAY)
+     */
+    firebase.analytics.logComplexEvent({
+      key: "view_item_list",
+      parameters: [{
+        key: "item1",
+        type: "array",
+        value: [
+          {
+            parameters: [
+              {key: "item_id", value: "id of item", type: LogComplexEventTypeParameter.STRING},
+              {key: "item_name", value: "name of item", type: LogComplexEventTypeParameter.STRING},
+              {key: "item_category", value: "category", type: LogComplexEventTypeParameter.STRING},
+              {key: "item_variant", value: "variant", type: LogComplexEventTypeParameter.STRING},
+              {key: "item_brand", value: "name of item brand", type: LogComplexEventTypeParameter.STRING},
+              {key: "price", value: 1, type: LogComplexEventTypeParameter.DOUBLE},
+              {key: "item_list", value: "name of list", type: LogComplexEventTypeParameter.STRING},
+              {key: "index", value: 1, type: LogComplexEventTypeParameter.INT}
+            ]
+          },
+          {
+            parameters: [
+              {key: "item_id", value: "id of item", type: LogComplexEventTypeParameter.STRING},
+              {key: "item_name", value: "name of item", type: LogComplexEventTypeParameter.STRING},
+              {key: "item_category", value: "category", type: LogComplexEventTypeParameter.STRING},
+              {key: "item_variant", value: "variant", type: LogComplexEventTypeParameter.STRING},
+              {key: "item_brand", value: "name of item brand", type: LogComplexEventTypeParameter.STRING},
+              {key: "price", value: 1, type: LogComplexEventTypeParameter.DOUBLE},
+              {key: "item_list", value: "name of list", type: LogComplexEventTypeParameter.STRING},
+              {key: "index", value: 2, type: LogComplexEventTypeParameter.INT}
+            ]
+          }
+        ]
+      }]
+    });
+
   }
 
   public doSetAnalyticsUserProperty(): void {
@@ -590,7 +635,7 @@ export class HelloWorldModel extends Observable {
   public doShowAdMobInterstitial(): void {
     firebase.admob.showInterstitial({
       iosInterstitialId: "ca-app-pub-9517346003011652/6938836122",
-      androidInterstitialId: "ca-app-pub-9517346003011652/6938836122",
+      androidInterstitialId: "ca-app-pub-9517346003011652/9225834529",
       testing: true,
       // Android automatically adds the connected device as test device with testing:true, iOS does not
       iosTestDeviceIds: [
@@ -615,7 +660,7 @@ export class HelloWorldModel extends Observable {
   public doPreloadAdMobInterstitial(): void {
     firebaseAdMob.preloadInterstitial({
       iosInterstitialId: "ca-app-pub-9517346003011652/6938836122",
-      androidInterstitialId: "ca-app-pub-9517346003011652/6938836122",
+      androidInterstitialId: "ca-app-pub-9517346003011652/9225834529",
       testing: true,
       // Android automatically adds the connected device as test device with testing:true, iOS does not
       iosTestDeviceIds: [
@@ -638,6 +683,69 @@ export class HelloWorldModel extends Observable {
   public doShowPreloadedAdMobInterstitial(): void {
     firebaseAdMob.showInterstitial().then(
         () => console.log("AdMob interstitial showing"),
+        errorMessage => {
+          alert({
+            title: "AdMob error",
+            message: errorMessage,
+            okButtonText: "Hmmkay"
+          });
+        }
+    );
+  }
+
+  public doPreloadRewardedVideoAd(): void {
+    firebaseAdMob.preloadRewardedVideoAd({
+      iosAdPlacementId: "ca-app-pub-9517346003011652/8586553377",
+      androidAdPlacementId: "ca-app-pub-9517346003011652/2819097664",
+      testing: true,
+      // Android automatically adds the connected device as test device with testing:true, iOS does not
+      iosTestDeviceIds: [
+        "45d77bf513dfabc2949ba053da83c0c7b7e87715", // Eddy's iPhone 6s
+        "fee4cf319a242eab4701543e4c16db89c722731f"  // Eddy's iPad Pro
+      ],
+      keywords: [
+        "foo",
+        "bar"
+      ]
+    }).then(
+        () => console.log("AdMob rewarded video ad preloaded"),
+        errorMessage => {
+          alert({
+            title: "AdMob error",
+            message: errorMessage,
+            okButtonText: "Hmmkay"
+          });
+        }
+    );
+  }
+
+  public doShowPreloadedRewardedVideoAd(): void {
+    let reward: RewardedVideoAdReward;
+    firebaseAdMob.showRewardedVideoAd({
+      onRewarded: receivedReward => {
+        reward = receivedReward;
+        console.log("Rewarded video ad: rewarded. Details: " + JSON.stringify(reward));
+      },
+      onLoaded: () => console.log("Rewarded video ad: loaded"),
+      onFailedToLoad: () => console.log("Rewarded video ad: failed to load"),
+      onOpened: () => console.log("Rewarded video ad: opened"),
+      onStarted: () => console.log("Rewarded video ad: started"),
+      onCompleted: () => console.log("Rewarded video ad: completed"),
+      onClosed: () => {
+        console.log("Rewarded video ad: closed");
+        if (reward) {
+          setTimeout(() => {
+            alert({
+              title: "You were rewarded!",
+              message: `${reward.amount} ${reward.type}`,
+              okButtonText: "Thanks!"
+            });
+          }, 500);
+        }
+      },
+      onLeftApplication: () => console.log("Rewarded video ad: left application")
+    }).then(
+        () => console.log("AdMob rewarded video ad showing"),
         errorMessage => {
           alert({
             title: "AdMob error",

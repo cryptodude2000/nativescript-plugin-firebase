@@ -401,7 +401,7 @@ Note that changing a password may fail if your login for this `email` was too lo
 * Don't forget to enable Phone login in your firebase instance.
 * You can only test this on a real device (not on an emulator/simulator).
 * Use the phone number of the device you're testing on.
-* _ANDROID:_ [Make sure you've uploaded your SHA1 fingerprint(s)](https://developers.google.com/android/guides/client-auth) to the Firebase console, then download the latest `google-services.json` file and add it to `app/App_Resources/Android`.
+* _ANDROID:_ [Make sure you've uploaded your SHA1 fingerprints](https://developers.google.com/android/guides/client-auth) to the Firebase console, then download the latest `google-services.json` file and add it to `app/App_Resources/Android`.
 * _iOS:_ Make sure you have messaging enabled as well, as this uses push notifications on iOS.
 
 ```js
@@ -517,7 +517,13 @@ Upon successful authentication, Facebook creates an access token that can be obt
 
 First, enable Google Sign-In in your firebase instance and add the _Web SDK configuration_.
 
-Make sure you've uploaded your SHA1 fingerprint(s)](https://developers.google.com/android/guides/client-auth) to the Firebase console, then download the latest `google-services.json` file and add it to `app/App_Resources/Android`.
+Make sure you've uploaded your [SHA1 fingerprints](https://developers.google.com/android/guides/client-auth) to the Firebase console, then download the latest `google-services.json` file and add it to `app/App_Resources/Android`.
+
+> **Uploading your SHA1 fingerprint is required for _debug_ and _release_ builds.**
+
+> If you have enabled Google Play's _App Signing_ feature you will need to add the SHA1 for Google's signing certificate to your Firebase project's fingerprints. If you fail to do this, your release builds will fail because they were not signed by Google. See image below:
+>
+> <img src="./images/app-signing.png" max-height="300px" alt="Google App Signing"/>
 
 Then add the following lines to your code and check for setup instructions for your platform below.
 
@@ -639,6 +645,29 @@ Shouldn't be more complicated than:
   firebaseWebApi.auth().signOut()
       .then(() => console.log("Logout OK"))
       .catch(error => console.log("Logout error: " + JSON.stringify(error)));
+```
+</details>
+
+### unlinking provider
+For a given user, and a given provider ("google.com","password",...)
+
+<details>
+ <summary>Native API</summary>
+
+```js
+  user.unlink(providerId /* string */)
+      .then(user => console.log("Unlink OK, user: " + JSON.stringify(user)))
+      .catch(error => console.log("Unlink error: " + JSON.stringify(error)));
+```
+</details>
+
+<details>
+ <summary>Web API</summary>
+
+```js
+  firebaseWebApi.auth().unlink(providerId /* string */)
+      .then(user => console.log("Unlink OK, user: " + JSON.stringify(user)))
+      .catch(error => console.log("Unlink error: " + JSON.stringify(error)));
 ```
 </details>
 
