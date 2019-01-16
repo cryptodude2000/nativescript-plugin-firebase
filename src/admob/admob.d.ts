@@ -105,6 +105,8 @@ export interface InterstitialOptions {
    * Invoked when the user closes the interstitial.
    */
   onAdClosed?: () => void;
+
+  onAdLoaded?: () => void;
 }
 
 export declare function showBanner(options: BannerOptions): Promise<any>;
